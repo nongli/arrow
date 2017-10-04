@@ -1,1 +1,3 @@
 *_generated.h
+*.grpc.fb.h
+*.grpc.fb.cc
