@@ -25,8 +25,13 @@
 #include <string>
 #include <vector>
 
+#include "arrow/ipc/Message_generated.h"
 #include "arrow/ipc/Schema_generated.h"
 #include "arrow/ipc/dictionary.h"
+
+namespace flatbuffers {
+  class FlatBufferBuilder;
+}
 
 namespace arrow {
 
@@ -129,6 +134,16 @@ Status WriteDictionaryMessage(const int64_t id, const int64_t length,
                               const std::vector<FieldMetadata>& nodes,
                               const std::vector<BufferMetadata>& buffers,
                               std::shared_ptr<Buffer>* out);
+
+Status RecordBatchToFlatbuffer(flatbuffers::FlatBufferBuilder& fbb, int64_t length,
+                               int64_t body_length,
+                               const std::vector<FieldMetadata>& nodes,
+                               const std::vector<BufferMetadata>& buffers,
+                               ::flatbuffers::Offset<flatbuf::Message>* out);
+
+Status SchemaToFlatbuffer(flatbuffers::FlatBufferBuilder& fbb, const Schema& schema,
+                          DictionaryMemo* dictionary_memo,
+                          ::flatbuffers::Offset<flatbuf::Schema>* out);
 
 }  // namespace ipc
 }  // namespace arrow

@@ -40,8 +40,16 @@ class Message::MessageImpl {
                        const std::shared_ptr<Buffer>& body)
       : metadata_(metadata), message_(nullptr), body_(body) {}
 
+  explicit MessageImpl(const flatbuf::Message* message,
+                       const std::shared_ptr<Buffer>& body)
+      : metadata_(nullptr), message_(message), body_(body) {}
+
   Status Open() {
-    message_ = flatbuf::GetMessage(metadata_->data());
+    if (message_ == nullptr) {
+      DCHECK(metadata_ != nullptr);
+      message_ = flatbuf::GetMessage(metadata_->data());
+    }
+
 
     // Check that the metadata version is supported
     if (message_->version() < kMinMetadataVersion) {
@@ -89,8 +97,13 @@ class Message::MessageImpl {
 
   std::shared_ptr<Buffer> metadata() const { return metadata_; }
 
+  const flatbuf::Message* flatbuf_metadata() const {
+    return message_;
+  }
+
  private:
-  // The Flatbuffer metadata
+  // The Flatbuffer metadata. The buffer can be null if the message_ is externally
+  // provided.
   std::shared_ptr<Buffer> metadata_;
   const flatbuf::Message* message_;
 
@@ -103,9 +116,20 @@ Message::Message(const std::shared_ptr<Buffer>& metadata,
   impl_.reset(new MessageImpl(metadata, body));
 }
 
+Message::Message(const flatbuf::Message* message,
+                 const std::shared_ptr<Buffer>& body) {
+  impl_.reset(new MessageImpl(message, body));
+}
+
 Status Message::Open(const std::shared_ptr<Buffer>& metadata,
                      const std::shared_ptr<Buffer>& body, std::unique_ptr<Message>* out) {
   out->reset(new Message(metadata, body));
+  return (*out)->impl_->Open();
+}
+
+Status Message::Open(const org::apache::arrow::flatbuf::Message* message,
+                     const std::shared_ptr<Buffer>& body, std::unique_ptr<Message>* out) {
+  out->reset(new Message(message, body));
   return (*out)->impl_->Open();
 }
 
@@ -114,6 +138,9 @@ Message::~Message() {}
 std::shared_ptr<Buffer> Message::body() const { return impl_->body(); }
 
 std::shared_ptr<Buffer> Message::metadata() const { return impl_->metadata(); }
+const flatbuf::Message* Message::flatbuf_metadata() const {
+  return impl_->flatbuf_metadata();
+}
 
 Message::Type Message::type() const { return impl_->type(); }
 

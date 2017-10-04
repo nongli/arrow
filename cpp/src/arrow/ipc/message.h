@@ -28,6 +28,15 @@
 #include "arrow/util/macros.h"
 #include "arrow/util/visibility.h"
 
+namespace org {
+  namespace apache {
+    namespace arrow {
+      namespace flatbuf {
+        struct Message;
+      }
+    }
+  }
+}
 namespace arrow {
 
 class Buffer;
@@ -63,6 +72,12 @@ class ARROW_EXPORT Message {
   /// Use at your own risk; Message::Open has more metadata validation
   Message(const std::shared_ptr<Buffer>& metadata, const std::shared_ptr<Buffer>& body);
 
+  /// \brief Construct message with an externally owned metadata object.
+  ///
+  /// Use at your own risk; Message::Open has more metadata validation
+  Message(const org::apache::arrow::flatbuf::Message* message,
+      const std::shared_ptr<Buffer>& body);
+
   ~Message();
 
   /// \brief Create and validate a Message instance from two buffers
@@ -71,6 +86,10 @@ class ARROW_EXPORT Message {
   /// \param[in] body a buffer containing the message body, which may be nullptr
   /// \param[out] out the created message
   static Status Open(const std::shared_ptr<Buffer>& metadata,
+                     const std::shared_ptr<Buffer>& body, std::unique_ptr<Message>* out);
+
+  /// \brief Create and validate a Message from the metadata and body buffer.
+  static Status Open(const org::apache::arrow::flatbuf::Message* message,
                      const std::shared_ptr<Buffer>& body, std::unique_ptr<Message>* out);
 
   /// \brief Read message body and create Message given Flatbuffer metadata
@@ -92,6 +111,11 @@ class ARROW_EXPORT Message {
   ///
   /// \return buffer
   std::shared_ptr<Buffer> metadata() const;
+
+  /// \brief the Message metadata deserialized
+  ///
+  /// \return flatbuffer message
+  const org::apache::arrow::flatbuf::Message* flatbuf_metadata() const;
 
   /// \brief the Message body, if any
   ///

@@ -96,7 +96,7 @@ add_custom_command(
   OUTPUT ${FBS_GRPC_OUTPUT_FILES}
   COMMAND flatc --cpp --grpc -o ${OUTPUT_DIR} ${ABS_FBS_GRPC_SRC}
   DEPENDS ${ABS_FBS_GRPC_SRC}
-  COMMENT "Running flatc (with grpc) compiler on ${ABS_FBS_GRPCSRC}"
+  COMMENT "Running flatc (with grpc) compiler on ${ABS_FBS_GRPC_SRC}"
   VERBATIM
 )
 
@@ -138,11 +138,11 @@ if (ARROW_BUILD_UTILITIES)
   target_link_libraries(stream-to-file ${UTIL_LINK_LIBS})
 
   # TODO: Also bad! put this in a library and don't link this way
-  add_executable(grpc-example-server grpc-example-server.cc ArrowRpc.grpc.fb.cc)
-  target_link_libraries(grpc-example-server ${UTIL_LINK_LIBS} -lgpr -lgrpc -lgrpc++)
+  add_executable(grpc-example-server grpc-example-server.cc ArrowRpc.grpc.fb.cc arrow-grpc.cc)
+  target_link_libraries(grpc-example-server ${ARROW_TEST_LINK_LIBS} -lgpr -lgrpc -lgrpc++ gflags)
   
-  add_executable(grpc-example-client grpc-example-client.cc ArrowRpc.grpc.fb.cc)
-  target_link_libraries(grpc-example-client ${UTIL_LINK_LIBS} -lgpr -lgrpc -lgrpc++)
+  add_executable(grpc-example-client grpc-example-client.cc ArrowRpc.grpc.fb.cc arrow-grpc.cc)
+  target_link_libraries(grpc-example-client ${UTIL_LINK_LIBS} -lgpr -lgrpc -lgrpc++ gflags)
 endif()
 
 ADD_ARROW_BENCHMARK(ipc-read-write-benchmark)

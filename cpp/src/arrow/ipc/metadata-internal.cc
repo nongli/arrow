@@ -597,7 +597,7 @@ flatbuf::Endianness endianness() {
   return bint.c[0] == 1 ? flatbuf::Endianness_Big : flatbuf::Endianness_Little;
 }
 
-static Status SchemaToFlatbuffer(FBB& fbb, const Schema& schema,
+Status SchemaToFlatbuffer(FBB& fbb, const Schema& schema,
                                  DictionaryMemo* dictionary_memo,
                                  flatbuffers::Offset<flatbuf::Schema>* out) {
   /// Fields
@@ -694,7 +694,7 @@ static Status WriteBuffers(FBB& fbb, const std::vector<BufferMetadata>& buffers,
   return Status::OK();
 }
 
-static Status MakeRecordBatch(FBB& fbb, int64_t length, int64_t body_length,
+Status MakeRecordBatch(FBB& fbb, int64_t length, int64_t body_length,
                               const std::vector<FieldMetadata>& nodes,
                               const std::vector<BufferMetadata>& buffers,
                               RecordBatchOffset* offset) {
@@ -717,6 +717,18 @@ Status WriteRecordBatchMessage(int64_t length, int64_t body_length,
   RETURN_NOT_OK(MakeRecordBatch(fbb, length, body_length, nodes, buffers, &record_batch));
   return WriteFBMessage(fbb, flatbuf::MessageHeader_RecordBatch, record_batch.Union(),
                         body_length, out);
+}
+
+Status RecordBatchToFlatbuffer(FBB& fbb, int64_t length, int64_t body_length,
+                               const std::vector<FieldMetadata>& nodes,
+                               const std::vector<BufferMetadata>& buffers,
+                               ::flatbuffers::Offset<flatbuf::Message>* out) {
+  RecordBatchOffset record_batch;
+  RETURN_NOT_OK(MakeRecordBatch(fbb, length, body_length, nodes, buffers, &record_batch));
+  *out = flatbuf::CreateMessage(fbb, kCurrentMetadataVersion,
+                                flatbuf::MessageHeader_RecordBatch, record_batch.Union(),
+                                body_length);
+  return Status::OK();
 }
 
 Status WriteTensorMessage(const Tensor& tensor, int64_t buffer_start_offset,

@@ -312,15 +312,22 @@ static inline Status ReadRecordBatch(const flatbuf::RecordBatch* metadata,
                                    &source, out);
 }
 
-Status ReadRecordBatch(const Buffer& metadata, const std::shared_ptr<Schema>& schema,
+Status ReadRecordBatch(const flatbuf::Message* message,
+                       const std::shared_ptr<Schema>& schema,
                        int max_recursion_depth, io::RandomAccessFile* file,
                        std::shared_ptr<RecordBatch>* out) {
-  auto message = flatbuf::GetMessage(metadata.data());
   if (message->header_type() != flatbuf::MessageHeader_RecordBatch) {
     DCHECK_EQ(message->header_type(), flatbuf::MessageHeader_RecordBatch);
   }
   auto batch = reinterpret_cast<const flatbuf::RecordBatch*>(message->header());
   return ReadRecordBatch(batch, schema, max_recursion_depth, file, out);
+}
+
+Status ReadRecordBatch(const Buffer& metadata, const std::shared_ptr<Schema>& schema,
+                       int max_recursion_depth, io::RandomAccessFile* file,
+                       std::shared_ptr<RecordBatch>* out) {
+  auto message = flatbuf::GetMessage(metadata.data());
+  return ReadRecordBatch(message, schema, max_recursion_depth, file, out);
 }
 
 Status ReadDictionary(const Buffer& metadata, const DictionaryTypeMap& dictionary_types,
@@ -441,7 +448,8 @@ class RecordBatchStreamReader::RecordBatchStreamReaderImpl {
     }
 
     io::BufferReader reader(message->body());
-    return ReadRecordBatch(*message->metadata(), schema_, &reader, batch);
+    return ReadRecordBatch(
+        message->flatbuf_metadata(), schema_, kMaxNestingDepth, &reader, batch);
   }
 
   std::shared_ptr<Schema> schema() const { return schema_; }

@@ -16,6 +16,7 @@
 // under the License.
 
 #include "arrow/ipc/writer.h"
+#include "arrow/ipc/writer-internal.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -183,6 +184,56 @@ class RecordBatchSerializer : public ArrayVisitor {
                                       std::shared_ptr<Buffer>* out) {
     return WriteRecordBatchMessage(num_rows, body_length, field_nodes_, buffer_meta_,
                                    out);
+  }
+
+  // Override this for writing dictionary messages
+  virtual Status SerializeMetadataMessage(int64_t num_rows, int64_t body_length,
+      flatbuffers::FlatBufferBuilder& fbb,
+      ::flatbuffers::Offset<flatbuf::Message>* out) {
+    return RecordBatchToFlatbuffer(fbb, num_rows, body_length, field_nodes_,
+                                   buffer_meta_, out);
+  }
+
+  Status Write(const RecordBatch& batch, flatbuffers::FlatBufferBuilder& fbb,
+      ::flatbuffers::Offset<flatbuf::Message>* msg_out,
+      ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>>* data_offset) {
+    int64_t body_length;
+    RETURN_NOT_OK(Assemble(batch, &body_length));
+
+    // Now that we have computed the locations of all of the buffers in shared
+    // memory, the data header can be converted to a flatbuffer and written out
+    //
+    // Note: The memory written here is prefixed by the size of the flatbuffer
+    // itself as an int32_t.
+    RETURN_NOT_OK(SerializeMetadataMessage(batch.num_rows(), body_length, fbb, msg_out));
+
+    // Now write the buffers. Allocate the buffer in the flat buf and then write into
+    // it to save a copy.
+    uint8_t* out_buffer;
+    *data_offset = fbb.CreateUninitializedVector(body_length, &out_buffer);
+
+    for (size_t i = 0; i < buffers_.size(); ++i) {
+      const Buffer* buffer = buffers_[i].get();
+      int64_t size = 0;
+      int64_t padding = 0;
+
+      // The buffer might be null if we are handling zero row lengths.
+      if (buffer) {
+        size = buffer->size();
+        padding = BitUtil::RoundUpToMultipleOf8(size) - size;
+      }
+
+      if (size > 0) {
+        memcpy(out_buffer, buffer->data(), size);
+        out_buffer += size;
+      }
+
+      if (padding > 0) {
+        memcpy(out_buffer, kPaddingBytes, padding);
+        out_buffer += padding;
+      }
+    }
+    return Status::OK();
   }
 
   Status Write(const RecordBatch& batch, io::OutputStream* dst, int32_t* metadata_length,
@@ -982,6 +1033,17 @@ Status SerializeSchema(const Schema& schema, MemoryPool* pool,
 
   RETURN_NOT_OK(schema_writer.Write(&dictionary_blocks));
   return stream->Finish(out);
+}
+
+// ----------------------------------------------------------------------
+// Serialization internal APIs
+
+Status SerializeRecordBatchStream(const RecordBatch& batch, MemoryPool* pool,
+    flatbuffers::FlatBufferBuilder& fbb,
+    ::flatbuffers::Offset<flatbuf::Message>* msg_out,
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>>* data_out) {
+  RecordBatchSerializer writer(pool, 0, kMaxNestingDepth, false);
+  return writer.Write(batch, fbb, msg_out, data_out);
 }
 
 }  // namespace ipc
