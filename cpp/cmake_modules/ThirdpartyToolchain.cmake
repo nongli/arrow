@@ -804,7 +804,8 @@ if (ARROW_WITH_GRPC)
                           "-DCMAKE_CXX_FLAGS=${EP_CXX_FLAGS}"
                           "-DCMAKE_C_FLAGS=${EX_C_FLAGS}"
                           -DCMAKE_INSTALL_PREFIX=${GRPC_PREFIX}
-                          -DBUILD_SHARED_LIBS=OFF)
+                          -DBUILD_SHARED_LIBS=OFF
+                          -DgRPC_SSL_PROVIDER=package)
 
     ExternalProject_Add(grpc_ep
       GIT_REPOSITORY "https://github.com/grpc/grpc"
