@@ -94,7 +94,7 @@ add_custom_command(
 # TODO: VERY BAD, using system flatc
 add_custom_command(
   OUTPUT ${FBS_GRPC_OUTPUT_FILES}
-  COMMAND flatc --cpp --grpc -o ${OUTPUT_DIR} ${ABS_FBS_GRPC_SRC}
+  COMMAND ${FLATBUFFERS_COMPILER} --cpp --grpc -o ${OUTPUT_DIR} ${ABS_FBS_GRPC_SRC}
   DEPENDS ${ABS_FBS_GRPC_SRC}
   COMMENT "Running flatc (with grpc) compiler on ${ABS_FBS_GRPCSRC}"
   VERBATIM
@@ -141,11 +141,22 @@ if (ARROW_BUILD_UTILITIES)
   add_definitions(-D_WIN32_WINNT=0x600 -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS)
   find_package(OpenSSL)
   
+  set(GRPC_LINK_LIBS
+    ${GRPC_STATIC_LIBRARY_GPR}
+    ${GRPC_STATIC_LIBRARY_GRPC}
+    ${GRPC_STATIC_LIBRARY_GRPCPP}
+    #ws2_32 only add on windows
+    OpenSSL::SSL)
+
+  message("NONG ${GRPC_STATIC_LIBRARY_GRPCPP}")
+  message("NONG ${GRPC_STATIC_LIBRARY_GPR}")
+  message("NONG ${GRPC_STATIC_LIBRARY_GRPC}")
+
   add_executable(grpc-example-server grpc-example-server.cc ArrowRpc.grpc.fb.cc)
-  target_link_libraries(grpc-example-server ${UTIL_LINK_LIBS} ${GRPC_STATIC_LIBRARY_GPR} ${GRPC_STATIC_LIBRARY_GRPC} ${GRPC_STATIC_LIBRARY_GRPCPP} ws2_32 OpenSSL::SSL)
+  target_link_libraries(grpc-example-server ${UTIL_LINK_LIBS} ${GRPC_LINK_LIBS})
   
   add_executable(grpc-example-client grpc-example-client.cc ArrowRpc.grpc.fb.cc)
-  target_link_libraries(grpc-example-client ${UTIL_LINK_LIBS} ${GRPC_STATIC_LIBRARY_GPR} ${GRPC_STATIC_LIBRARY_GRPC} ${GRPC_STATIC_LIBRARY_GRPCPP} ws2_32 OpenSSL::SSL)
+  target_link_libraries(grpc-example-client ${UTIL_LINK_LIBS} ${GRPC_LINK_LIBS})
 endif()
 
 ADD_ARROW_BENCHMARK(ipc-read-write-benchmark)

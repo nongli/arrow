@@ -803,6 +803,8 @@ if (ARROW_WITH_GRPC)
     set(GRPC_CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                           "-DCMAKE_CXX_FLAGS=${EP_CXX_FLAGS}"
                           "-DCMAKE_C_FLAGS=${EX_C_FLAGS}"
+                          "-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl"
+                          "-DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib"
                           -DCMAKE_INSTALL_PREFIX=${GRPC_PREFIX}
                           -DBUILD_SHARED_LIBS=OFF
                           -DgRPC_SSL_PROVIDER=package)
@@ -826,6 +828,8 @@ if (ARROW_WITH_GRPC)
     STATIC_LIB ${GRPC_STATIC_LIBRARY_GRPC})
   ADD_THIRDPARTY_LIB(grpc_grpcpp
     STATIC_LIB ${GRPC_STATIC_LIBRARY_GRPCPP})
+  ADD_THIRDPARTY_LIB(grpc_grpcares
+    STATIC_LIB ${GRPC_STATIC_LIBRARY_GRPC_ARES})
 
   if (GRPC_VENDORED)
     add_dependencies(grpc_grp grpc_ep)
